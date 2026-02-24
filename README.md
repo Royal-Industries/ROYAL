@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Royal Industries</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #f5f5f5;
+      text-align: center;
+    }
+    .product {
+      border: 1px solid #ccc;
+      background: white;
+      padding: 15px;
+      margin: 15px;
+      display: inline-block;
+    }
+    button {
+      padding: 8px;
+      margin: 4px;
+      background: black;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    #adminPanel {
+      display: none;
+      background: white;
+      padding: 20px;
+      border: 1px solid #ccc;
+      margin-top: 20px;
+    }
+    #customText {
+      margin: 20px;
+      font-size: 18px;
+      color: #333;
+    }
+  </style>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    import { getDatabase, ref, set, push, onValue, remove } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyABGhjN8KT3w3Q0rHtDZKXb_f4KACHnZfg",
+      authDomain: "royal-industries-e9c06.firebaseapp.com",
+      projectId: "royal-industries-e9c06",
+      storageBucket: "royal-industries-e9c06.firebasestorage.app",
+      messagingSenderId: "65993138859",
+      appId: "1:65993138859:web:52be42d4759bb762e44dee",
+      measurementId: "G-42GGMJCEXD"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+
+    // Load products from Firebase
+    function loadProducts() {
+      const productsRef = ref(database, 'products');
+      onValue(productsRef, (snapshot) => {
+        const productsDiv = document.getElementById("products");
+        productsDiv.innerHTML = "";
+        snapshot.forEach((child) => {
+          const p = child.val();
+          const key = child.key;
+
+          // simulate 2-3 min delay (here 5 seconds for testing, change to 120000~180000)
+          setTimeout(() => {
+            productsDiv.innerHTML += `
+              <div class="product" id="prod-${key}">
+                <h3>${p.name}</h3>
+                <img src="${p.image}" width="150"><br>
+                <p>Price: ₹${p.price}</p>
+                <button onclick="addToCart('${key}')">Add to Cart</button>
+                <button onclick="buyNow('${key}')">Buy</button>
+                <button onclick="removeProduct('${key}')">Remove</button>
+              </div>
+            `;
+          }, 5000); // 5s delay for demo
+        });
+      });
+    }
+
+    loadProducts();
+
+    // Add product to Firebase
+    window.addProduct = function() {
+      const name = document.getElementById("productName").value;
+      const price = document.getElementById("productPrice").value;
+      const image = document.getElementById("productImage").value;
+
+      push(ref(database, 'products'), { name, price, image });
+
+      document.getElementById("productName").value = "";
+      document.getElementById("productPrice").value = "";
+      document.getElementById("productImage").value = "";
+    }
+
+    // Remove product
+    window.removeProduct = function(key) {
+      remove(ref(database, 'products/' + key));
+      document.getElementById("prod-" + key)?.remove();
+    }
+
+    // Add custom text
+    window.addText = function() {
+      const text = document.getElementById("customTextInput").value;
+      document.getElementById("customText").innerText = text;
+      document.getElementById("customTextInput").value = "";
+    }
+
+    // Cart & Orders
+    window.addToCart = function(key) {
+      alert("Added to cart!");
+    }
+
+    window.buyNow = function(key) {
+      const name = prompt("Enter your name");
+      const phone = prompt("Enter your mobile number");
+
+      if (!name || !phone) return;
+
+      const ordersRef = ref(database, 'orders');
+      push(ordersRef, { productId: key, customerName: name, phone: phone });
+
+      alert("Dear customer, the items you purchased will soon be delivered. Our customer care will call you.");
+    }
+
+    // Admin panel
+    window.openAdmin = function() {
+      const pass = prompt("Enter admin password");
+      if (pass === "SavitaRana@") {
+        document.getElementById("adminPanel").style.display = "block";
+        loadOrders();
+      } else {
+        alert("Wrong password!");
+      }
+    }
+
+    // Load orders
+    function loadOrders() {
+      const ordersRef = ref(database, 'orders');
+      const ordersDiv = document.getElementById("orders");
+      onValue(ordersRef, (snapshot) => {
+        ordersDiv.innerHTML = "";
+        snapshot.forEach((child) => {
+          const o = child.val();
+          const key = child.key;
+          ordersDiv.innerHTML += `<p id="order-${key}">${o.productId} - ${o.customerName} - ${o.phone} <button onclick="removeOrder('${key}')">Delete</button></p>`;
+        });
+      });
+    }
+
+    // Remove order
+    window.removeOrder = function(key) {
+      remove(ref(database, 'orders/' + key));
+      document.getElementById("order-" + key)?.remove();
+    }
+
+  </script>
+</head>
+<body>
+
+  <button onclick="openAdmin()">⚙ Admin</button>
+  <h1>Royal Industries</h1>
+
+  <div id="customText"></div>
+  <input id="customTextInput" placeholder="Add custom text">
+  <button onclick="addText()">Add Text</button>
+
+  <div id="products"></div>
+
+  <h2>Cart</h2>
+  <div id="cart"></div>
+
+  <div id="adminPanel">
+    <h2>Admin Panel</h2>
+    <input id="productName" placeholder="Product name"><br><br>
+    <input id="productPrice" placeholder="Price"><br><br>
+    <input id="productImage" placeholder="Image URL"><br><br>
+    <button onclick="addProduct()">Add Product</button>
+    <h3>Orders</h3>
+    <div id="orders"></div>
+  </div>
+
+</body>
+</html>
